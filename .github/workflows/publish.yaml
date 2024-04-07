@@ -1,0 +1,42 @@
+name: Publish
+permissions: write-all
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v3
+      - name: Install Node and NPM
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Replace Vversion
+        id: replace_version
+        uses: mad9000/actions-find-and-replace-string@5
+        with:
+          source: ${{ github.ref_name }}
+          find: 'v'
+          replace: ''
+      - name: build and publish
+        env:
+          version_number: ${{ steps.replace_version.outputs.value }}
+          CI_REGISTRY_USER: ${{ secrets.CI_REGISTRY_USER }}
+          CI_REGISTRY_PASSWORD: ${{ secrets.CI_REGISTRY_PASSWORD }}
+        run: |
+          sudo apt-get install -y docker.io
+          
+          docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+          
+          docker network create web
+          docker build -t coindeck/chipmunkdb:latest .
+          docker push coindeck/chipmunkdb:latest
+          docker build -t coindeck/chipmunkdb:${{ env.version_number }} .
+          docker push coindeck/chipmunkdb:${{ env.version_number }}
+

@@ -1,0 +1,16 @@
+version: '2'
+services:
+
+  chipmunkdb:
+    build: .
+    container_name: "chipmunkdb"
+    networks:
+      - web
+    restart: always
+    ports:
+      - "8091:8091"
+    env_file:
+      - .env
+networks:
+  web:
+    external: true

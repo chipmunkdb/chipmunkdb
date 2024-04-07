@@ -1,0 +1,23 @@
+docker-build-master:
+  # Official docker image.
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker info
+    - apk update
+    - apk upgrade
+
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+
+  script:
+    - docker network create web
+    - docker build -t coindeck/chipmunkdb:latest .
+    - docker push coindeck/chipmunkdb:latest
+    - docker build -t coindeck/chipmunkdb:1.18 .
+    - docker push coindeck/chipmunkdb:1.18
+
+
+
+
