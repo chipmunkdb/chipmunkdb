@@ -43,6 +43,6 @@ if hasRegistry and os.getenv("NAME") is not None:
     thread = threading.Timer(60, registerService)
     thread.start()
 
-app = getServerApp()
+app, databaseManager = getServerApp()
 
 web.run_app(app, port=HTTP_PORT)

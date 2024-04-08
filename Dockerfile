@@ -43,7 +43,7 @@ RUN pip3 install sqlalchemy
 RUN pip3 install --upgrade cython
 
 #installing coindeck plugin
-COPY chipmunkdb_server /usr/coindeck/chipmunkdb/
+COPY chipmunkdb_server /usr/coindeck/chipmunkdb/chipmunkdb_server
 COPY requirements.txt /usr/coindeck/chipmunkdb/requirements.txt
 COPY .env.docker /usr/coindeck/chipmunkdb/.env
 
