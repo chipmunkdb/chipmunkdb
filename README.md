@@ -1,31 +1,72 @@
 # chipmunkdb :chipmunk:
-### It´s like a super fast network-pandas with a query-engine
+### High Speed Time Series Network database based on <a href="https://github.com/duckdb/duckdb">DuckDB</a>
 
 <img width=230 src="https://media.giphy.com/media/QZ4WIYqMHBgQw/giphy.gif" />
 
 ### Why we´ve built this
 
-- :chipmunk: IPC between different Proceses with lightning fast data exchange
-    - Saving of 45MB of Data in 379ms :rocket:
-    - Loading of 45MB of Data in 80ms :rocket:
-    - Querying only a part of the data in about to 14ms     
-- No need to copy data from one process to another (with pyarrow help)
-- Time-Series-Database support very fast
-- Reading a whole Table in complete
-- Querying on a completely saved Table (Timeseries, Columns or other data)
-- Adding, Removing Column
-- Rest Api 
-- Docker Container for direct-usage
-- No-Schema needed
-- Saving complete table or adding single rows 
+Ever tried to save, update, delete and modify large time-series data (for example historical stock data) in a network storage and then tried to query only parts out of it? 
+
+Its a pain, because most databases rely on consistency and durability. But what if you don´t need that but you need the fast network speed to read a large pandas datatable, modify it, save it? 
+
+Here you are. chipmunkdb (based on <a href="https://github.com/duckdb/duckdb">DuckDB</a>) is a high speed time series network database that can save, update, delete and modify large time-series data in a network storage and then query only parts out of it for further usage in frontend or calculations.
+
+### Features
+
+- Pandas Integration via Parquet and Octet-Streaming
+- Network Support via HTTP
+- Multiple Collections / Databases possible
+- Fast Read and Write Operations
+- SQL Alchemy Support (e.g. for SuperSet)
+- Automatic Time-Series Data Handling
+- Stores Collection in Memory and dehydrates it to disk after a certain time
+- Fast Querying of Time-Series Data via HTTP Request
+- Show Schemas of all collections via HTTP
 
 # Example Use Cases
 
-## Time-Series Data
-Save a complete Time-Series-Data in a ChipmunkDB-Table and query only the needed data. Update all the Time-Series Data with pandas very fast and save it back.
+### Super fast pandas access (needs seconds on 500mb of data)
+```python
+    #% pip install chipmundkb-python-client
+    
+    import chipmunkdb as db
+    
+    db = db.ChipmunkDB("your-chipmundkdb-url:9991")
+    
+    df2 = db.collection_as_pandas("your_collection")
+    # df2 is now a fully supported dataframe
 
+    # calulcate moving average
+    df2["moving_average"] = df2["close"].rolling(window=20).mean()
+    
+    # save it back
+    db.save_pandas_as_collection(df2, "your_collection")
+    
+```
 
-## Quickstart
+### Querying Data in a Node JS Application
+```node
+
+   // npm install chipmunkdb-node-client
+   import ChipmunkDbClient, {CollectionInfo, DataRow, DocumentDataInfo} from "chipmunkdb-node-client";
+   
+   const client = new ChipmunkDbClient("your-chipmundkdb-url:9991");
+    
+   client.query("SELECT datetime, moving_average FROM your_collection WHERE datetime > '2021-01-01' AND datetime < '2021-01-02' ORDER BY datetime DESC")
+              .then((rows) => { 
+              
+                  // use your data for rendering
+                  console.log(rows);
+              })
+```
+
+## Roadmap
+
+- [ ] Authentication Support
+- [ ] More examples
+
+## Quickstart Container
+
 ```docker
 docker run -p 8091:8091 --name chipmunkdb coindeck/chipmunkdb
 
@@ -34,27 +75,23 @@ docker run -p 8091:8091 --name chipmunkdb coindeck/chipmunkdb
 
 ```
 
+## Use in kubernetes
+
+Take a look at: https://github.com/chipmunkdb/chipmunkdb-helm-charts
+
 ## Develop Installation
-```python
-# how to run it 
-pip install -r requirements.txt
-
-python src/index.py
-
-```
-
-#### Create Docker 
-```docker
-# how to build docker
-
-
+```shell
+    # how to run it 
+    pip install -r requirements.txt
+    
+    python src/index.py
 ```
 
 
-## Usage Description
+### Client Libraries
 
-![Some Image of the Usage](assets/ChipmunkDB.png "Usage of Chipmunk")
+- [Python](https://github.com/chipmunkdb/chipmunkdb-python-client)
+- [NodeJS](https://www.npmjs.com/package/chipmunkdb-node-client)
 
-## Examples
 
 
