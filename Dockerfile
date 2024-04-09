@@ -44,6 +44,7 @@ RUN pip3 install --upgrade cython
 
 #installing coindeck plugin
 COPY chipmunkdb_server /usr/coindeck/chipmunkdb/chipmunkdb_server
+COPY index.py /usr/coindeck/chipmunkdb/index.py
 COPY requirements.txt /usr/coindeck/chipmunkdb/requirements.txt
 COPY .env.docker /usr/coindeck/chipmunkdb/.env
 
