@@ -15,8 +15,8 @@ docker-build-master:
     - docker network create web
     - docker build -t coindeck/chipmunkdb:latest .
     - docker push coindeck/chipmunkdb:latest
-    - docker build -t coindeck/chipmunkdb:1.20 .
-    - docker push coindeck/chipmunkdb:1.20
+    - docker build -t coindeck/chipmunkdb:1.21 .
+    - docker push coindeck/chipmunkdb:1.21
 
 
 
