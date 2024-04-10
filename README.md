@@ -7,7 +7,7 @@
 
 Ever tried to save, update, delete and modify large time-series data (for example historical stock data) in a network storage and then tried to query only parts out of it? 
 
-Its a pain, because most databases rely on consistency and durability. But what if you don´t need that but you need the fast network speed to read a large pandas datatable, modify it, save it? 
+It's a pain, because most databases rely on consistency and durability. But what if you don't need that, but you need the fast network speed to read a large pandas datatable, modify it, save it? 
 
 Here you are. chipmunkdb (based on <a href="https://github.com/duckdb/duckdb">DuckDB</a>) is a high speed time series network database that can save, update, delete and modify large time-series data in a network storage and then query only parts out of it for further usage in frontend or calculations.
 

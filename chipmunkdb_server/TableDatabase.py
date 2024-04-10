@@ -9,7 +9,7 @@ import asyncio
 
 load_dotenv()
 
-DATABASE_DIRECTORY = os.getenv("DATABASE_DIRECTORY")
+DATABASE_DIRECTORY = os.getenv("DATABASE_DIRECTORY", "db")
 
 class TableDatabase():
     def __init__(self, dataRow, dbManager, create=False):
@@ -386,7 +386,7 @@ class TableDatabase():
                 if type(k) is not str:
                     k = str(k)
                 splits = k.split(".")
-                if len(splits) > 0:
+                if len(splits) > 1:
                     self._domains.append(splits[0])
             self._domains = list(dict.fromkeys(self._domains))
 

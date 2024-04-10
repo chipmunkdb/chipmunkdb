@@ -24,7 +24,7 @@ import numpy as np
 
 
 load_dotenv()
-DATABASE_DIRECTORY = os.getenv("DATABASE_DIRECTORY")
+DATABASE_DIRECTORY = os.getenv("DATABASE_DIRECTORY", "db")
 
 
 class DatabaseManager():
