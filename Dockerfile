@@ -19,7 +19,7 @@ RUN apt-get update
 RUN apt-get install build-essential -y
 RUN apt-get install wget curl -y
 
-RUN apt-get install python3.8 -y
+RUN apt-get install python3.10 -y
 
 RUN apt-get install python3-pip -y
 RUN apt-get install python3-dev -y
