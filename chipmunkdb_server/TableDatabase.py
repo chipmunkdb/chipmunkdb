@@ -119,7 +119,7 @@ class TableDatabase():
         thread.start()
 
     def getDatabaseFilename(self):
-        return DATABASE_DIRECTORY+"tables/"+self._name
+        return DATABASE_DIRECTORY+"/tables/"+self._name
 
     def getDatabaseFile(self):
         return self.getDatabaseFilename()+".duck"
