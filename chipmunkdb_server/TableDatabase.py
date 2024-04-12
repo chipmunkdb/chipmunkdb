@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 import os
@@ -10,6 +12,13 @@ import asyncio
 load_dotenv()
 
 DATABASE_DIRECTORY = os.getenv("DATABASE_DIRECTORY", "db")
+
+class ModeEnum(Enum):
+    APPEND = "append"
+    UPDATE = "update"
+    OVERWRITE = "overwrite"
+    KEEP = "keep"
+    DROPBEFORE = "dropbefore"
 
 class TableDatabase():
     def __init__(self, dataRow, dbManager, create=False):
@@ -25,6 +34,8 @@ class TableDatabase():
         self._rows = {}
         self._lastModified = time.time()
         self._lastUsed = time.time()
+        self._last_backup_saved = 0
+        self._lastSaved = 0
         self._printTime = True
         self._dbManager = dbManager
         self._db = duckdb.connect(":memory:", read_only=False)
@@ -48,14 +59,19 @@ class TableDatabase():
 
             self.blockOperations()
             file_db = duckdb.connect(database=self.getDatabaseFile(), read_only=False)
-            pragmaInfo = file_db.execute("PRAGMA show('"+self._name+"')").df().to_dict("records")
-            for prag in pragmaInfo:
-                self._columns.append(prag["column_name"])
-            for k in self._columns:
-                splits = k.split(".")
-                if len(splits) > 1:
-                    self._domains.append(splits[0])
-            self._domains = list(dict.fromkeys(self._domains))
+            try:
+                # Try to fetch the column information from the raw dataframe
+                pragmaInfo = file_db.execute("PRAGMA table_info('"+self._name+"')").df().to_dict("records")
+                for prag in pragmaInfo:
+                    self._columns.append(prag["name"])
+                for k in self._columns:
+                    splits = k.split(".")
+                    if len(splits) > 1:
+                        self._domains.append(splits[0])
+                self._domains = list(dict.fromkeys(self._domains))
+            except Exception as pragmaerr:
+                print("ERror while trying to pragmaing data of your dataframe", pragmaerr)
+
             ## okay table exists # lets load the dataframe
             self._df = file_db.execute('SELECT * FROM "'+self._name+'"').df().copy()
 
@@ -134,7 +150,8 @@ class TableDatabase():
     def isTableEmpty(self):
         return self._df.shape[0] == 0
 
-    def addDataframeToDatabase(self, dataFrame, mode, domain=None, leftIndex="__index_level_0__", rightIndex="__index_level_0__"):
+    def addDataframeToDatabase(self, dataFrame, mode: ModeEnum = ModeEnum.APPEND,
+                               domain=None, leftIndex="__index_level_0__", rightIndex="__index_level_0__"):
 
         try:
 
@@ -180,13 +197,13 @@ class TableDatabase():
             else:
                 # merge it
                 join_df = dataFrame
-                if mode == "dropbefore":
+                if mode == ModeEnum.DROPBEFORE:
                     self._df = self._df.drop(columns=[n for n in dataFrame.columns.tolist() if n != 'datetime'], errors="ignore")
                     self.updateView()
                     mode = "append"
-                if mode == "keep":
+                if mode == ModeEnum.KEEP:
                     self._df = self._df.merge(join_df, left_index=True, right_index=True)
-                elif mode == "append":
+                elif mode == ModeEnum.APPEND:
 
                     marker_df = join_df.filter(regex='\:marker', axis=1)
                     for col in marker_df.columns:
@@ -209,9 +226,9 @@ class TableDatabase():
                                      how='outer', suffixes=('', '_y'))
                     self._df.drop(self._df.filter(regex='_y$').columns.tolist(), axis=1, inplace=True)
                     self._df.update(join_df, overwrite=True)
-                elif mode == "update":
+                elif mode == ModeEnum.UPDATE:
                     self._df.update(join_df)
-                elif mode == "overwrite":
+                elif mode == ModeEnum.OVERWRITE:
                     self._df = self._df.merge(join_df, left_index=True, right_index=True)
 
             ## lets sort
@@ -235,7 +252,7 @@ class TableDatabase():
         finally:
             self._changed = True
             self.updateView(True)
-            self.printTiming(start, "append_dataframe_by "+mode)
+            self.printTiming(start, "append_dataframe_by "+str(mode))
             self._lastUsed = time.time()
             self._lastModified = time.time()
             self.saveDatabaseAsync(True)
@@ -441,19 +458,31 @@ class TableDatabase():
 
         return True
 
+    def createFileBackup(self):
+        try:
+            os.system("cp " + self.getDatabaseFile() + " " + self.getDatabaseFile() + "_bkup")
+        except Exception as e:
+            print(str(e))
+            pass
+
     def save(self, update=True):
 
-        self._currentlySaving = True
+        if self._currentlySaving:
+            return False
 
-        while True:
-            time.sleep(0.3)
-            waitingTime = time.time() - self._lastModified
-            if waitingTime > 5:
-                break
+
+        if time.time() - self._lastSaved < 2 * 60:
+            print("Saving to quickly")
+            return False
 
         self.waitUntilOperationsFinished()
 
+        self._currentlySaving = True
+
         start = time.time()
+
+        # before we save the file, we copy it as a backup and delete it after all works fine
+        self.createFileBackup()
 
         file_db = duckdb.connect(database=self.getDatabaseFile(), read_only=False)
         copydf = self._df.copy()
@@ -481,6 +510,9 @@ class TableDatabase():
 
         try:
             file_db.execute('CREATE TABLE "'+self._name+'" AS SELECT * FROM dataframe_view')
+
+            test = file_db.query("SELECT * FROM "+self._name).df()
+
             file_db.unregister("dataframe_view")
         except Exception as e:
             print(str(e))
@@ -496,6 +528,8 @@ class TableDatabase():
 
         self._currentlySaving = False
         self.printTiming(start, "save_time")
+
+        self._lastSaved = time.time()
 
         return True
 

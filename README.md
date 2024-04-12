@@ -1,7 +1,6 @@
-# chipmunkdb :chipmunk:
-### High Speed Time Series Network database based on <a href="https://github.com/duckdb/duckdb">DuckDB</a>
-
-<img width=230 src="https://media.giphy.com/media/QZ4WIYqMHBgQw/giphy.gif" />
+<center><img width=170 src="assets/logo.png" /></center>
+<center><h1> chipmunkdb</h1></center>
+<center><b> High Speed Time Series Network database based on <a href="https://github.com/duckdb/duckdb">DuckDB</a></b></center>
 
 ### Why we´ve built this
 
