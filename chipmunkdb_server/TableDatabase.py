@@ -24,6 +24,7 @@ class TableDatabase():
     def __init__(self, dataRow, dbManager, create=False):
         self._df = pd.DataFrame()
         self._currentlySaving = False
+        self._timer = None
         self._domains = []
         self._operationsFinished = False
         self._type = "table"
@@ -80,15 +81,17 @@ class TableDatabase():
             for col in self._df.columns.tolist():
                 # when multiple "_" in column name
                 if "_index" in col and col.count("_") > 1:
-                    name = col.split("_")[2]
-                    multiIndexes.append(name)
+                    name = col.split("_")[-1]
                     # rename the col to the name
                     self._df.rename(columns={col: name}, inplace=True)
+                    multiIndexes.append(name)
 
             self._df.dropna(axis=1, how="all", inplace=True)
             if len(multiIndexes) > 0:
+                # delete the current index
+                self._df.reset_index(drop=True, inplace=True)
                 # if multiindex we need to set the index
-                self._df = self._df.set_index(multiIndexes, append=True)
+                self._df = self._df.set_index(multiIndexes)
                 # sort index
                 self._df.sort_index(inplace=True)
             else:
@@ -101,6 +104,11 @@ class TableDatabase():
 
             if "datetime" in self._df.columns.tolist():
                 self._df["datetime"] = pd.to_datetime(self._df["datetime"])
+
+            if "date" in self._df.columns.tolist():
+                self._df["date"] = pd.to_datetime(self._df["date"])
+
+
 
             # iterate over all columns and check if there are "date" or "time" in
             # the column name
@@ -127,12 +135,22 @@ class TableDatabase():
         self.unblockOperations()
         return True
 
-    def saveDatabaseAsync(self, update=False):
+    def saveDatabaseAsyncTimer(self, update):
+        self._timer = None
+        self.saveDatabaseAsync(update)
+
+    def saveDatabaseAsync(self, update=False, timeout=0):
+        if timeout > 0 and self._timer is None:
+            self._timer = threading.Timer(timeout, self.saveDatabaseAsyncTimer, [update])
+            self._timer.start()
+            return True
+
         if self._currentlySaving:
             return False
 
         thread = threading.Thread(target=self.save, args=[update])
         thread.start()
+        return thread
 
     def getDatabaseFilename(self):
         return DATABASE_DIRECTORY+"/tables/"+self._name
@@ -197,13 +215,13 @@ class TableDatabase():
             else:
                 # merge it
                 join_df = dataFrame
-                if mode == ModeEnum.DROPBEFORE:
+                if mode == ModeEnum.DROPBEFORE.value:
                     self._df = self._df.drop(columns=[n for n in dataFrame.columns.tolist() if n != 'datetime'], errors="ignore")
                     self.updateView()
                     mode = "append"
                 if mode == ModeEnum.KEEP:
                     self._df = self._df.merge(join_df, left_index=True, right_index=True)
-                elif mode == ModeEnum.APPEND:
+                elif mode == ModeEnum.APPEND.value:
 
                     marker_df = join_df.filter(regex='\:marker', axis=1)
                     for col in marker_df.columns:
@@ -226,9 +244,9 @@ class TableDatabase():
                                      how='outer', suffixes=('', '_y'))
                     self._df.drop(self._df.filter(regex='_y$').columns.tolist(), axis=1, inplace=True)
                     self._df.update(join_df, overwrite=True)
-                elif mode == ModeEnum.UPDATE:
+                elif mode == ModeEnum.UPDATE.value:
                     self._df.update(join_df)
-                elif mode == ModeEnum.OVERWRITE:
+                elif mode == ModeEnum.OVERWRITE.value:
                     self._df = self._df.merge(join_df, left_index=True, right_index=True)
 
             ## lets sort
@@ -245,7 +263,6 @@ class TableDatabase():
                     self._df["index_"+index] = self._df.index.get_level_values(index)
                     # convert the same type as the index
                     self._df["index_"+index] = self._df["index_"+index].astype(self._df.index.get_level_values(index).dtype)
-
 
         except Exception as e:
             print("Error in adding data", str(e))
@@ -472,8 +489,10 @@ class TableDatabase():
 
 
         if time.time() - self._lastSaved < 2 * 60:
+            if self._timer is not None:
+                return False
             print("Saving to quickly")
-            return False
+            return self.saveDatabaseAsync(timeout=2*60)
 
         self.waitUntilOperationsFinished()
 
