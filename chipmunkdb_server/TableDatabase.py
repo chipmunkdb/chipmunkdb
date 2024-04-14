@@ -248,13 +248,15 @@ class TableDatabase():
                             self._df.replace("[trash]", np.nan, inplace=True)
 
                     bstart = self.printTiming(bstart, "append_dataframe_replaced_emptycols " + str(mode))
-
+                    
                     self._df = self._df.merge(join_df, left_index=True, right_index=True,
                                      how='outer', suffixes=('', '_y'))
                     bstart = self.printTiming(bstart, "append_dataframe_merged " + str(mode))
                     self._df.drop(self._df.filter(regex='_y$').columns.tolist(), axis=1, inplace=True)
                     bstart = self.printTiming(bstart, "append_dataframe_drop " + str(mode))
-                    self._df.loc[join_df.index, join_df.columns].update(join_df, overwrite=True)
+                    testdf = self._df.loc[join_df.index, join_df.columns].update(join_df, overwrite=True)
+
+                    self._df.loc[join_df.index, join_df.columns] = join_df
                     bstart = self.printTiming(bstart, "append_dataframe_update " + str(mode))
                 elif mode == ModeEnum.UPDATE.value:
                     self._df.update(join_df)
