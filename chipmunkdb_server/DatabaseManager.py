@@ -7,7 +7,7 @@ import threading
 from chipmunkdb_server.Registrar import Registrar
 from chipmunkdb_server.TableDatabase import TableDatabase
 from chipmunkdb_server.DocumentDatabase import DocumentDatabase
-from chipmunkdb_server.helper import extract_tables
+from chipmunkdb_server.helper import extract_tables, printTiming
 from chipmunkdb_server.StorageDatabase import StorageDatabase
 
 import os.path
@@ -570,7 +570,9 @@ class DatabaseManager():
             columns = None
             if targetTable is None:
                 data_df = await self.db_query(q.value)
+                bstart = printTiming(None)
                 columns = self.getColumnsDescription(data_df)
+                printTiming(bstart, "getColumnsDescription", _name=self.__class__.__name__)
             else:
 
                 dbo = await self.getOrCreateDatabaseObject(targetTable, "table", create_new=False)
@@ -579,7 +581,9 @@ class DatabaseManager():
 
                     try:
                         data_df = await self.db_query(q.value)
+                        bstart = printTiming(None)
                         columns = self.getColumnsDescription(data_df)
+                        printTiming(bstart, "getColumnsDescription", _name=self.__class__.__name__)
                     except Exception as e:
                         raise Exception("table_not_existent", "The table "+targetTable+" does not exist")
 

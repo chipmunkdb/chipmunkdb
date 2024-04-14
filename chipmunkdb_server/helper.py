@@ -2,9 +2,19 @@ import os
 import sys
 import importlib
 import subprocess
+import time
+
+from dotenv import load_dotenv
 from sqlparse.sql import IdentifierList, Identifier
 from sqlparse.tokens import Keyword, DML
 from sql_metadata import Parser
+
+
+load_dotenv()
+
+
+DEBUG = os.getenv("DEBUG", "False")
+
 
 def is_subselect(parsed):
     if not parsed.is_group:
@@ -14,6 +24,15 @@ def is_subselect(parsed):
             return True
     return False
 
+def printTiming(start=None, label=None, _name=""):
+    if start is None:
+        return time.time()
+    if DEBUG is None or str(DEBUG).lower().strip() != "true":
+        return None
+    end = time.time()
+    if label is not None:
+        print("["+_name+"]  "+label, end - start)
+    return time.time()
 
 def extract_from_part(parsed):
     from_seen = False

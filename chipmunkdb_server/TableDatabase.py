@@ -9,6 +9,8 @@ import threading
 import time
 import asyncio
 
+from chipmunkdb_server.helper import printTiming
+
 load_dotenv()
 
 DATABASE_DIRECTORY = os.getenv("DATABASE_DIRECTORY", "db")
@@ -122,7 +124,7 @@ class TableDatabase():
 
 
             self.updateView()
-            self.printTiming(start, "loading_database")
+            printTiming(start, "loading_database")
 
             file_db.close()
 
@@ -169,7 +171,7 @@ class TableDatabase():
 
         self.updateDatabaseMaster(update)
 
-        self.printTiming(start, "updateView ")
+        printTiming(start, "updateView ")
 
     def isTableEmpty(self):
         return self._df.shape[0] == 0
@@ -224,20 +226,20 @@ class TableDatabase():
                 if mode == ModeEnum.DROPBEFORE.value:
                     self._df = self._df.drop(columns=[n for n in dataFrame.columns.tolist() if n != 'datetime'], errors="ignore")
                     self.updateView()
-                    bstart = self.printTiming(start, "append_dataframe_dropbefore_updateView " + str(mode))
+                    bstart = printTiming(start, "append_dataframe_dropbefore_updateView " + str(mode))
                     mode = "append"
 
                 if mode == ModeEnum.KEEP:
                     self._df = self._df.merge(join_df, left_index=True, right_index=True)
-                    bstart = self.printTiming(start, "append_dataframe_update " + str(mode))
+                    bstart = printTiming(start, "append_dataframe_update " + str(mode))
                 elif mode == ModeEnum.APPEND.value:
-                    bstart = self.printTiming(start, "append_dataframe_prepared_datasets" + str(mode))
+                    bstart = printTiming(start, "append_dataframe_prepared_datasets" + str(mode))
                     marker_df = join_df.filter(regex='\:marker', axis=1)
                     for col in marker_df.columns:
                         if col not in self._df.columns:
                             marker_df.drop(col, axis=1, inplace=True)
 
-                    bstart = self.printTiming(bstart, "append_dataframe_filter_and_drop_cols " + str(mode))
+                    bstart = printTiming(bstart, "append_dataframe_filter_and_drop_cols " + str(mode))
                     if len(marker_df.columns) > 0:
                         try:
                             join_df.drop(marker_df.columns, axis=1, inplace=True)
@@ -251,23 +253,23 @@ class TableDatabase():
                         finally:
                             self._df.replace("[trash]", np.nan, inplace=True)
 
-                    bstart = self.printTiming(bstart, "append_dataframe_replaced_emptycols " + str(mode))
+                    bstart = printTiming(bstart, "append_dataframe_replaced_emptycols " + str(mode))
                     
                     self._df = self._df.merge(join_df, left_index=True, right_index=True,
                                      how='outer', suffixes=('', '_y'))
-                    bstart = self.printTiming(bstart, "append_dataframe_merged " + str(mode))
+                    bstart = printTiming(bstart, "append_dataframe_merged " + str(mode))
                     self._df.drop(self._df.filter(regex='_y$').columns.tolist(), axis=1, inplace=True)
-                    bstart = self.printTiming(bstart, "append_dataframe_drop " + str(mode))
+                    bstart = printTiming(bstart, "append_dataframe_drop " + str(mode))
                     testdf = self._df.loc[join_df.index, join_df.columns].update(join_df, overwrite=True)
 
                     self._df.loc[join_df.index, join_df.columns] = join_df
-                    bstart = self.printTiming(bstart, "append_dataframe_update " + str(mode))
+                    bstart = printTiming(bstart, "append_dataframe_update " + str(mode))
                 elif mode == ModeEnum.UPDATE.value:
                     self._df.update(join_df)
-                    bstart = self.printTiming(start, "append_dataframe_update " + str(mode))
+                    bstart = printTiming(start, "append_dataframe_update " + str(mode))
                 elif mode == ModeEnum.OVERWRITE.value:
                     self._df = self._df.merge(join_df, left_index=True, right_index=True)
-                    bstart = self.printTiming(start, "append_dataframe_update " + str(mode))
+                    bstart = printTiming(start, "append_dataframe_update " + str(mode))
 
             ## lets sort
             if "datetime" in self._df.columns.tolist() or "date" in self._df.columns.tolist() or self.isTimeseries() \
@@ -276,7 +278,7 @@ class TableDatabase():
 
             self._df.dropna(axis=1, how="all", inplace=True)
 
-            bstart = self.printTiming(None, "append_dataframe_before_index_creation ")
+            bstart = printTiming(None, "append_dataframe_before_index_creation ")
             # write the indexes to a column named "index_"+indexname
             for index in self._df.index.names:
                 if index is None:
@@ -285,14 +287,14 @@ class TableDatabase():
                     self._df["index_"+index] = self._df.index.get_level_values(index)
                     # convert the same type as the index
                     self._df["index_"+index] = self._df["index_"+index].astype(self._df.index.get_level_values(index).dtype)
-            self.printTiming(bstart, "append_dataframe_after_index_creation ")
+            printTiming(bstart, "append_dataframe_after_index_creation ")
 
         except Exception as e:
             print("Error in adding data", str(e))
         finally:
             self._changed = True
             self.updateView(True)
-            self.printTiming(start, "append_dataframe_by_finished "+str(mode))
+            printTiming(start, "append_dataframe_by_finished "+str(mode))
             self._lastUsed = time.time()
             self._lastModified = time.time()
             self.saveDatabaseAsync(True)
@@ -565,18 +567,8 @@ class TableDatabase():
         file_db.close()
 
         self._currentlySaving = False
-        self.printTiming(start, "save_time")
+        printTiming(start, "save_time")
 
         self._lastSaved = time.time()
 
         return True
-
-    def printTiming(self, start, label):
-        if start is None:
-            return time.time()
-        if DEBUG is None or str(DEBUG).lower().strip() != "true":
-            return None
-        end = time.time()
-        if self._printTime:
-            print("["+self._name+"]  "+label, end - start)
-        return time.time()

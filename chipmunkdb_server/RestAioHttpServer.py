@@ -16,6 +16,7 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 import simplejson as json
 
+from chipmunkdb_server.helper import printTiming
 
 load_dotenv()
 HTTP_PORT = os.getenv("HTTP_PORT")
@@ -344,6 +345,7 @@ async def queryData(request):
 @routes.get("/query")
 async def queryData(request):
     try:
+        full_query = printTiming()
         merge_mode = None
         query = request.rel_url.query.getall("q")
 
@@ -388,6 +390,7 @@ async def queryData(request):
                 ret_data.append(data)
             else:
                 for df, columns in data:
+                    bstart = printTiming(None)
                     df = df.loc[:, ~df.columns.duplicated()]
                     datetimec_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
                     for c in datetimec_columns:
@@ -395,10 +398,14 @@ async def queryData(request):
                             df[c] = df[c].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S+00:00'))
                         except Exception as ie:
                             pass
+                    bstart = printTiming(bstart, "Query chaning datetime formats took: ", _name="RestAioHttpServer.py")
                     ret_data.append(df.to_dict("records"))
+                    printTiming(bstart, "Converting to dict took: ", _name="RestAioHttpServer")
+
             index = index + 1
 
         if merge_mode:
+            mstart = printTiming(None)
             flatList = []
             for d in ret_data:
                 for r in d:
@@ -418,6 +425,7 @@ async def queryData(request):
             summary_df = summary_df.dropna(axis=0, how="all", subset=[n for n in summary_df if n != 'datetime' ])
             # special case lets delete all "datetime" are Nat
             ret_data.append(summary_df.to_dict("records"))
+            printTiming(mstart, "Merging dataframes took: ", _name="RestAioHttpServer.py")
 
         if len(ret_data) == 1:
             ret_data = ret_data[0]
@@ -425,6 +433,7 @@ async def queryData(request):
     except Exception as e:
         return json_response({"error": str(e)}, 400)
 
+    printTiming(full_query, "Full query took: ", _name="RestAioHttpServer.py")
 
     return json_response({"result": ret_data, "columns": columns}, status=200)
 
