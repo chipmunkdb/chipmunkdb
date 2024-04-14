@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM ubuntu:latest
 
 WORKDIR /usr/coindeck/chipmunkdb
 
@@ -24,23 +24,14 @@ RUN apt-get install python3.10 -y
 RUN apt-get install python3-pip -y
 RUN apt-get install python3-dev -y
 
-RUN pip3 install 'jupyterlab==1.2.7'
-RUN jupyter-lab --generate-config
-
 RUN apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash
-RUN apt-get install nodejs -y
-#RUN apt-get install npm -y already installed with above
 
 RUN apt-get install git -y
 
 
 RUN pip3 install google
-RUN pip3 install grpcio
 RUN pip3 install requests
-RUN pip3 install protobuf
 RUN pip3 install sqlalchemy
-RUN pip3 install --upgrade cython
 
 #installing coindeck plugin
 COPY chipmunkdb_server /usr/coindeck/chipmunkdb/chipmunkdb_server

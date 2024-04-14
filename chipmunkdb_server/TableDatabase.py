@@ -148,9 +148,6 @@ class TableDatabase():
             self._timer.start()
             return True
 
-        if self._currentlySaving:
-            return False
-
         thread = threading.Thread(target=self.save, args=[update])
         thread.start()
         return thread
@@ -257,7 +254,7 @@ class TableDatabase():
                     bstart = self.printTiming(bstart, "append_dataframe_merged " + str(mode))
                     self._df.drop(self._df.filter(regex='_y$').columns.tolist(), axis=1, inplace=True)
                     bstart = self.printTiming(bstart, "append_dataframe_drop " + str(mode))
-                    self._df.update(join_df, overwrite=True)
+                    self._df.loc[join_df.index, join_df.columns].update(join_df, overwrite=True)
                     bstart = self.printTiming(bstart, "append_dataframe_update " + str(mode))
                 elif mode == ModeEnum.UPDATE.value:
                     self._df.update(join_df)
@@ -504,11 +501,7 @@ class TableDatabase():
 
     def save(self, update=True):
 
-        if self._currentlySaving:
-            return False
-
-
-        if time.time() - self._lastSaved < 2 * 60:
+        if time.time() - self._lastSaved < 2 * 60 or self._currentlySaving == True:
             if self._timer is not None:
                 return False
             print("Saving to quickly")
