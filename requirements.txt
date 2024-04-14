@@ -16,6 +16,7 @@ simplejson
 tinydb
 pyarrow
 fastparquet
+aiohttp-compress
 sqlparse
 chipmunkdb-python-client
 asynctest

@@ -61,6 +61,8 @@ Here you are. chipmunkdb (based on <a href="https://github.com/duckdb/duckdb">Du
 
 ## Roadmap
 
+- [ ] Adding Unit Tests to stabilize the code
+- [ ] Adding Unit-Tests to the client libraries
 - [ ] Authentication Support
 - [ ] More examples
 

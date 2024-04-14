@@ -3,6 +3,7 @@ import os
 import threading
 
 from aiohttp import web
+from aiohttp_compress import compress_middleware
 
 from chipmunkdb_server.DatabaseManager import DatabaseManager
 from chipmunkdb_server.Registrar import Registrar
@@ -17,6 +18,7 @@ def getServerApp():
     databaseManager = DatabaseManager()
 
     app = web.Application()
+    app.middlewares.append(compress_middleware)
     app.add_routes(routes)
 
     registry = Registrar()

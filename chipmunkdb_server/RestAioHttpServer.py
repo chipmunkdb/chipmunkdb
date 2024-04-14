@@ -1,3 +1,4 @@
+import gzip
 import sys
 
 from aiohttp import web
@@ -220,11 +221,14 @@ async def addColumnsToDatabase(request):
     try:
 
         collection = request.match_info.get("collection")
-        content = await request.content.read()
-        file_Data = content.split(b'\r\n\r\n')[1].split(b'\r\n--')[0]
+        file_Data = await request.content.read()
+        # zlib uncompress content
+        file_Data = file_Data.split(b'\r\n\r\n')[1].split(b'\r\n--')[0]
 
         headerDataInfo = request.headers.get("x-data")
         headerData = json.loads(headerDataInfo)
+
+        file_Data = gzip.decompress(file_Data)
 
         pq_file = io.BytesIO(file_Data)
         df = pd.read_parquet(pq_file)
@@ -603,7 +607,9 @@ async def downloadLargeCollection(request):
             status=200,
             reason='OK',
             headers={'Content-Type': 'application/octet-stream'},
+
         )
+        response.enable_compression(force=True)
         await response.prepare(request)
         await response.write(fh.read())
         table = None

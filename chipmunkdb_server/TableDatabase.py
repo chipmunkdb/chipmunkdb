@@ -161,7 +161,11 @@ class TableDatabase():
     def updateView(self, update=False):
         start = time.time()
         self._db.unregister('dataframe_view')
-        self._db.register('dataframe_view', self._df)
+        try:
+            self._db.register('dataframe_view', self._df)
+        except:
+            # ignore when df is empty.
+            pass
 
         self.updateDatabaseMaster(update)
 
