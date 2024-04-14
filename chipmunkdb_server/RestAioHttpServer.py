@@ -47,6 +47,7 @@ class ComplexEncoder(json.JSONEncoder):
 
 
 def json_response(data, status=200):
+    start = printTiming()
     try:
         data_json = json.dumps(data, cls=ComplexEncoder, ignore_nan=True, allow_nan=True)
     except Exception as e:
@@ -54,7 +55,10 @@ def json_response(data, status=200):
         # print stacktrace
         traceback.print_exc(file=sys.stderr)
         status = 500
-    return web.Response(text=data_json, content_type='application/json', status=status)
+    printTiming(start, "Json response dumping took: ", _name="RestAioHttpServer.py")
+    res = web.Response(text=data_json, content_type='application/json', status=status)
+    res.enable_compression(force=True)
+    return res
 
 @routes.get('/documents')
 async def getDocuments(request):
@@ -433,9 +437,10 @@ async def queryData(request):
     except Exception as e:
         return json_response({"error": str(e)}, 400)
 
-    printTiming(full_query, "Full query took: ", _name="RestAioHttpServer.py")
 
-    return json_response({"result": ret_data, "columns": columns}, status=200)
+    d = json_response({"result": ret_data, "columns": columns}, status=200)
+    printTiming(full_query, "Full query took: ", _name="RestAioHttpServer.py")
+    return d
 
 
 @routes.post("/storage/{storage}/filter")
